@@ -96,6 +96,42 @@ class Wheel(qtw.QGraphicsItem):
         # painter.setPen(brPen)
         # painter.setBrush(qtc.Qt.NoBrush)
         # painter.drawRect(self.boundingRect())
+"""
+Added SpringItem class for the extra credit portion of the assignment
+"""
+class SpringItem(qtw.QGraphicsItem):
+    def __init__(self, x1, y1, x2, y2, coils=6, amplitude=5, pen=None, parent=None):
+        super().__init__(parent)
+        self.pen = pen or qtg.QPen(qtg.QColor('Black'))
+        self.x1, self.y1, self.x2, self.y2 = x1, y2, x2, y2
+        self.path = qtg.QPainterPath(qtc.QPointF(x1, y1))
+        dx = (x2-x1) / (coils*2)
+        for i in range(coils*2):
+            x = x1 + dx*(i+1)
+            y = y1 + ((-1)**i)*amplitude
+            self.path.lineTo(x, y)
+        self.path.lineTo(x2, y2)
+    def boundingRect(self):
+        return self.path.boundingRect()
+    def paint(self, painter, option, widget=None):
+        painter.setPen(self.pen)
+        painter.drawPath(self.path)
+"""
+The DashpotItem class was also added for the extra credit portion of the assignment.
+"""
+class DashpotItem(qtw.QGraphicsItem):
+    def __init__(self, x1, y1, x2, y2, width=8, pen=None, brush=None, parent=None):
+        super().__init__(parent)
+        self.pen = pen or qtg.QPen(qtg.QColor('black'))
+        self.brush = brush or qtg.QBrush(qtg.QColor('gray, 128'))
+        self.rect = qtc.QRectF(-width/2, y2-y1, width, abs(y2-y1))
+        self.setTransform(qtg.QTransform().translate(x1, y1))
+    def boundingRect(self):
+        return self.rect
+    def paint(self, painter, option, widget=None):
+        painter.setPen(self.pen)
+        painter.setBrush(self.brush)
+        painter.drawRect(self.rect)
 
 #endregion
 
@@ -123,22 +159,30 @@ class CarModel():
         self.yangdeg = 45.0  # ramp angle in degrees.  default is 45
         self.results = None
 
+        """
+        Values below were given in the problem statement
+        """
         #set default values for the properties of the quarter car model
-        self.m1 = #$JES MISSING CODE# # mass of car body in kg
-        self.m2 = #$JES MISSING CODE#  # mass of wheel in kg
-        self.c1 = #$JES MISSING CODE#  # damping coefficient in N*s/m
-        self.k1 = #$JES MISSING CODE#  # spring constant of suspension in N/m
-        self.k2 = #$JES MISSING CODE#  # spring constant of tire in N/m
-        self.v = #$JES MISSING CODE#  # velocity of car in kph
+        self.m1 = 450.0 # mass of car body in kg  # done
+        self.m2 = 20.0  # mass of wheel in kg  # done
+        self.c1 = 4500.0  # damping coefficient in N*s/m  # done
+        self.k1 = 15000.0  # spring constant of suspension in N/m  # done
+        self.k2 = 90000.0  # spring constant of tire in N/m  # done
+        self.v = 120.0  # velocity of car in kph  # done
 
-
-        self.mink1 = #$JES MISSING CODE#  #If I jack up my car and release the load on the spring, it extends about 3 inches
-        self.maxk1 = #$JES MISSING CODE#  #What would be a good value for a soft spring vs. a stiff spring?
-        self.mink2 = #$JES MISSING CODE#  #Same question for the shock absorber.
-        self.maxk2 = #$JES MISSING CODE#
+        """
+        - 3" is approximately 0.0762 m
+        - 6" is approximately 0.1524 m
+        - 0.75" is approximately 0.01905 m
+        - 1.5" is approximately 0.0381 m
+        """
+        self.mink1 = self.m1 * 9.81 / 0.1524  #If I jack up my car and release the load on the spring, it extends about 3 inches # converted to meters  # done
+        self.maxk1 = self.m1 * 9.81 / 0.0762  #What would be a good value for a soft spring vs. a stiff spring? # converted to meters  # done
+        self.mink2 = self.m2 * 9.81 / 0.0381  #Same question for the shock absorber.  # done
+        self.maxk2 = self.m2 * 9.81 / 0.01905  # done
         self.accel =None
-        self.accelMax = #$JES MISSING CODE#
-        self.accelLim = #$JES MISSING CODE#
+        self.accelMax = 0.0  # done
+        self.accelLim = 2.0  # done
         self.SSE = 0.0
 
 class CarView():
@@ -190,7 +234,15 @@ class CarView():
         self.CarBody = MassBlock(0, -70, 100, 30, pen=self.penWheel, brush=self.brushMass, name="Car Body", mass=150)
         self.Wheel.addToScene(self.scene)
         self.scene.addItem(self.CarBody)
-        ##$JES MISSING CODE# #Finish building the scene to look similar to the schematic on the problem assignment
+         #Finish building the scene to look similar to the schematic on the problem assignment    # done
+        spring = SpringItem(0, 0, 0, -55, coils=8, amplitude=8, pen=self.penWheel)
+        dashpot = DashpotItem(0, -55, 0, -70, width=10, pen=self.penWheel, brush=self.brushMass)
+        self.scene.addItem(spring)
+        self.scene.addItem(dashpot)
+        spring = SpringItem(0, 0, 0, -55, coils=8, amplitude=8, pen=self.penWheel)
+        dashpot = DashpotItem(0, -55, 0, -70, width=10, pen=self.penWheel, brush=self.brushMass)
+        #self.scene.addLine(0, 0, 0, -55, self.penWheel)
+        #self.scene.addLine(0, -55, 0, -70, self.penWheel)
 
     def setupPensAndBrushes(self):
         self.penWheel = qtg.QPen(qtg.QColor("orange"))
@@ -211,10 +263,10 @@ class CarView():
             QTPlotting = False  # actually, we are just using CLI and showing the plot
         ax.clear()
         ax1.clear()
-        t=model.timeData
+        t=model.t    # was getting an error with its original format so, I changed it slightly.
         ycar = model.results[:,0]
         ywheel=model.results[:,2]
-        accel=model.accelData
+        accel=model.accel  # was getting an error with its original format so, I changed it slightly.
 
         if self.chk_LogX.isChecked():
             ax.set_xlim(0.001,model.tmax)
@@ -283,14 +335,16 @@ class CarController():
         else:
             y = self.model.ymag
 
-        x1 = #$JES MISSING CODE#  # car position in vertical direction
-        x1dot = #$JES MISSING CODE#  # car velocity  in vertical direction
-        x2 = #$JES MISSING CODE#  # wheel position in vertical direction
-        x2dot = #$JES MISSING CODE#  # wheel velocity in vertical direction
-
+        x1 = X[0]  # car position in vertical direction       # done
+        x1dot = X[1]  # car velocity  in vertical direction   # done
+        x2 = X[2]  # wheel position in vertical direction     # done
+        x2dot = X[3]  # wheel velocity in vertical direction  # done
+        """
+        I had notes of these equations from Dynamic Systems Analysis
+        """
         # write the non-trivial equations in vertical direction
-        x1ddot = #$JES MISSING CODE#)
-        x2ddot = #$JES MISSING CODE#
+        x1ddot = (self.model.c1 * (x2dot - x1dot) + self.model.k1 * (x2 - x1)) / self.model.m1  # done
+        x2ddot = (-self.model.c1 * (x2dot - x1dot) - self.model.k1 * (x2 - x1) + self.model.k2 * (y - x2)) / self.model.m2  # done
 
         # return the derivatives of the input state vector
         return [x1dot, x1ddot, x2dot, x2ddot]
@@ -301,18 +355,18 @@ class CarController():
         in another function doCalc.
         """
         #Step 1.  Read from the widgets
-        self.model.m1 = #$JES MISSING CODE#
-        self.model.m2 = #$JES MISSING CODE#
-        self.model.c1 = #$JES MISSING CODE#
-        self.model.k1 = #$JES MISSING CODE#
-        self.model.k2 = #$JES MISSING CODE#
-        self.model.v = #$JES MISSING CODE#
+        self.model.m1 = float(self.le_m1.text())  # done
+        self.model.m2 = float(self.le_m2.text())  # done
+        self.model.c1 = float(self.le_c1.text())  # done
+        self.model.k1 = float(self.le_k1.text())  # done
+        self.model.k2 = float(self.le_k2.text())  # done
+        self.model.v = float(self.le_v.text())    # done
 
         #recalculate min and max k values
-        self.mink1=#$JES MISSING CODE#
-        self.maxk1=#$JES MISSING CODE#
-        self.mink2=#$JES MISSING CODE#
-        self.maxk2=#$JES MISSING CODE#
+        self.mink1= self.model.m1 * 9.81 / 0.1524  # done
+        self.maxk1= self.model.m1 * 9.81 / 0.0762  # done
+        self.mink2= self.model.m2 * 9.81 / 0.0381 # done
+        self.maxk2= self.model.m2 * 9.81 / 0.01905  # done
 
         ymag=6.0/(12.0*3.3)   #This is the height of the ramp in m
         if ymag is not None:
@@ -379,11 +433,13 @@ class CarController():
         self.calculate(doCalc=False)
         #Step 2:
         #JES MISSING CODE HERE$
-        x0= # create a numpy array with initial values for k1, c1, and k2
+        x0= np.array([self.model.k1, self.model.c1, self.model.k2])# create a numpy array with initial values for k1, c1, and k2
         #Step 3:
         #JES MISSING CODE HERE$
-        answer= #use the Nelder-Mead method to minimize the SSE function (our objective function)
-        self.view.updateView(self.model)
+        answer = minimize(self.SSE, x0, method='Nelder-Mead')#use the Nelder-Mead method to minimize the SSE function (our objective function)
+        self.model.k1, self.model.c1, self.model.k2 = answer.x
+        self.view.updateView(self.model) # not needed?
+        self.calculate(doCalc=True)
 
     def SSE(self, vals, optimizing=True):
         """
